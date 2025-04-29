@@ -3,5 +3,5 @@ project(algorithms_homeworks)
 set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(ConvexHull)
-add_subdirectory(Module1)
-add_subdirectory(Graphs/BFSgit)
+#add_subdirectory(Module1)
+add_subdirectory(Graphs/BFS)
