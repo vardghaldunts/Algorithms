@@ -1,24 +1,7 @@
 
 /**
  * Tasks:
- * 
- * Look at how the class "DijkstraSP" is written.
- * 
- * Implement method "DijkstraSP::printReachableVertices()".
- *     >> check that it answers the tests correctly.
- * 
- * Add another subgraph with 3-4 vertices, not connected to 
- *         the existing graph.
- *     >> check that number of reachable vertices doesn't change.
- * 
- * Implement method "DijkstraSP::getShortestPathTo()".
- *     >> check that it passes the tests.
- * 
- * Imagine that we have no "_prev[]" array. Write alternative 
- *         "get_shortest_path_to()" method, which will do the same, 
- *         but without using "_prev[]" array.
- *     >> check that results are the same.
- * 
+ *
  * Alter the algorithm in such way, that if several shortest paths 
  *         are available, it will report:
  *     1) One of them in a random way
@@ -26,11 +9,6 @@
  *                 Hint: For that purpose, "_prev[u]" must store 
  *                 all possible previous vertices of 'u'.
  *     >> alter provided graph slightly, and make the checks.
- * 
- * Change "DijkstraSP::run()" method so it will use 'std::priority_queue<>'
- *         for faster search of temporary vertices with minimal distance.
- *         For that, push 'u' to the queue once its distance is updated, 
- *         and top of the queue will be the vertex with minimal distance.
  * 
  * Change the class "DijkstraSP" (or write a new class), which will work 
  *         on graphs, provided by WeightedAdjacencyList.
@@ -41,6 +19,8 @@
 #include <limits>
 #include <iostream>
 #include <iomanip>
+#include <queue>
+
 
 #include "WeightedAdjacencyMatrix.hpp"
 
@@ -128,21 +108,94 @@ public:
 	/// Prints on one line all vertices which are reachable from "_source".
 	void printReachableVertices() const
 	{
+		const int N = _g.size();
 		std::cout << " {";
-		//
-		// Implement
-		//
+		for (int v = 0; v < N; ++v)
+		{
+			if (_dist[v] != WEIGHTED_ADJ_MATRIX_INF)
+			{
+				std::cout << " " << static_cast<char>('A' + v);
+			}
+		}
 		std::cout << " }" << std::endl;
 	}
 
 	/// Calculates and returns shortest path from '_source' to 't'.
-	std::vector< int > getShortestPathTo( int t ) const
+	std::vector<int> getShortestPathTo(int t) const
 	{
-		//
-		// Implement
-		//
-		return std::vector< int >();
+		std::vector<int> path;
+		if (_dist[t] == WEIGHTED_ADJ_MATRIX_INF)
+			return path;
+		for (int at = t; at != -1; at = _prev[at])
+			path.insert(path.begin(), at);
+		return path;
 	}
+
+	std::vector<int> getShortestPathTo_NoPrev(int target) const
+	{
+		if (_dist[target] == WEIGHTED_ADJ_MATRIX_INF)
+			return {};
+		std::vector<int> path;
+		int current = target;
+		while (current != _source)
+		{
+			path.insert(path.begin(), current);
+			double current_dist = _dist[current];
+			bool found = false;
+			for (int u = 0; u < _g.size(); ++u)
+			{
+				if (_dist[u] + _g._m[u][current] == current_dist)
+				{
+					current = u;
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+				return {};
+		}
+		path.insert(path.begin(), _source);
+		return path;
+	}
+
+	void run_q(const WeightedAdjacencyMatrix& g, int source)
+	{
+		static const double INF = WEIGHTED_ADJ_MATRIX_INF;
+		_g = g;
+		_source = source;
+		const int N = _g.size();
+
+		_dist = std::vector<double>(N, INF);
+		_prev = std::vector<int>(N, -1);
+		_is_final = std::vector<bool>(N, false);
+
+		std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, std::greater<std::pair<double, int>>> pq;
+
+		_dist[source] = 0;
+		pq.push({0, source});
+
+		while (!pq.empty()) {
+			int u = pq.top().second;
+			double dist_u = pq.top().first;
+			pq.pop();
+
+			if (_is_final[u]) continue;
+			_is_final[u] = true;
+
+			for (int v = 0; v < N; ++v) {
+				if (_g._m[u][v] != INF && !_is_final[v]) {
+					double new_dist = _dist[u] + _g._m[u][v];
+					if (new_dist < _dist[v]) {
+						_dist[v] = new_dist;
+						_prev[v] = u;
+						pq.push({new_dist, v});
+					}
+				}
+			}
+		}
+	}
+
+
 
 };
 
@@ -196,6 +249,10 @@ int main( int argc, char* argv[] )
 	g.addUndirectedEdge( 'K', 'T', 22 );
 	g.addUndirectedEdge( 'R', 'S', 8 );
 	g.addUndirectedEdge( 'S', 'T', 6 );
+	g.setSize('Z' - 'A' + 1);
+	g.addUndirectedEdge('X', 'Y', 5);
+	g.addUndirectedEdge('Y', 'Z', 3);
+
 
 	cout << "\t Running Dijkstra's SP from vertex 'A' ..." << endl;
 	{
